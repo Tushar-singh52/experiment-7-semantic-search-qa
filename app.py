@@ -31,21 +31,57 @@ document_texts = list(documents.values())
 
 
 # ============================================================
-# 2. LOAD SENTENCE TRANSFORMER MODEL
+# 2. MODEL VARIABLES
 # ============================================================
 
-embedding_model = SentenceTransformer(
-    "multi-qa-MiniLM-L6-cos-v1"
-)
+embedding_model = None
+document_embeddings = None
+
+qa_tokenizer = None
+qa_model = None
 
 
 # ============================================================
-# 3. GENERATE DOCUMENT EMBEDDINGS
+# 3. LOAD MODELS ONLY WHEN NEEDED
 # ============================================================
 
-document_embeddings = embedding_model.encode(
-    document_texts
-)
+def load_models():
+
+    global embedding_model
+    global document_embeddings
+    global qa_tokenizer
+    global qa_model
+
+    # Load semantic search model
+    if embedding_model is None:
+
+        print("Loading semantic search model...")
+
+        embedding_model = SentenceTransformer(
+            "multi-qa-MiniLM-L6-cos-v1"
+        )
+
+        document_embeddings = embedding_model.encode(
+            document_texts
+        )
+
+        print("Semantic search model loaded.")
+
+
+    # Load extractive QA model
+    if qa_model is None:
+
+        print("Loading extractive QA model...")
+
+        qa_tokenizer = AutoTokenizer.from_pretrained(
+            "distilbert-base-cased-distilled-squad"
+        )
+
+        qa_model = AutoModelForQuestionAnswering.from_pretrained(
+            "distilbert-base-cased-distilled-squad"
+        )
+
+        print("Extractive QA model loaded.")
 
 
 # ============================================================
@@ -54,18 +90,15 @@ document_embeddings = embedding_model.encode(
 
 def semantic_search(question):
 
-    # Convert question into embedding
     question_embedding = embedding_model.encode(
         [question]
     )
 
-    # Calculate cosine similarity
     similarity_scores = cosine_similarity(
         question_embedding,
         document_embeddings
     )[0]
 
-    # Find most relevant document
     best_index = similarity_scores.argmax()
 
     best_document_name = document_names[best_index]
@@ -81,20 +114,7 @@ def semantic_search(question):
 
 
 # ============================================================
-# 5. LOAD EXTRACTIVE QA MODEL
-# ============================================================
-
-qa_tokenizer = AutoTokenizer.from_pretrained(
-    "distilbert-base-cased-distilled-squad"
-)
-
-qa_model = AutoModelForQuestionAnswering.from_pretrained(
-    "distilbert-base-cased-distilled-squad"
-)
-
-
-# ============================================================
-# 6. EXTRACTIVE QUESTION ANSWERING
+# 5. EXTRACTIVE QUESTION ANSWERING
 # ============================================================
 
 def extract_answer(question, context):
@@ -114,14 +134,12 @@ def extract_answer(question, context):
 
     sequence_ids = inputs.sequence_ids(0)
 
-    # Run QA model
     with torch.no_grad():
 
         outputs = qa_model(
             **inputs
         )
 
-    # Convert logits into probabilities
     start_probs = torch.softmax(
         outputs.start_logits,
         dim=-1
@@ -132,7 +150,6 @@ def extract_answer(question, context):
         dim=-1
     )[0]
 
-    # Get only context token positions
     context_indices = [
         i
         for i, sid in enumerate(sequence_ids)
@@ -144,7 +161,6 @@ def extract_answer(question, context):
     best_start = context_indices[0]
     best_end = context_indices[0]
 
-    # Find best start/end token combination
     for start in context_indices:
 
         for end in context_indices:
@@ -157,7 +173,8 @@ def extract_answer(question, context):
 
             score = (
                 start_probs[start].item()
-                * end_probs[end].item()
+                *
+                end_probs[end].item()
             )
 
             if score > best_score:
@@ -166,7 +183,6 @@ def extract_answer(question, context):
                 best_start = start
                 best_end = end
 
-    # Convert token positions back to character positions
     start_char = offset_mapping[
         best_start
     ][0].item()
@@ -175,7 +191,6 @@ def extract_answer(question, context):
         best_end
     ][1].item()
 
-    # Extract answer from original context
     answer = context[
         start_char:end_char
     ]
@@ -184,12 +199,11 @@ def extract_answer(question, context):
 
 
 # ============================================================
-# 7. COMPLETE QUESTION-ANSWERING PIPELINE
+# 6. COMPLETE QUESTION-ANSWERING PIPELINE
 # ============================================================
 
 def answer_question(question):
 
-    # Handle empty input
     if not question.strip():
 
         return (
@@ -200,9 +214,8 @@ def answer_question(question):
             ""
         )
 
-    # --------------------------------------------------------
-    # Semantic Search
-    # --------------------------------------------------------
+    # Load models when first question is submitted
+    load_models()
 
     (
         best_document_name,
@@ -211,20 +224,10 @@ def answer_question(question):
         scores
     ) = semantic_search(question)
 
-
-    # --------------------------------------------------------
-    # Extractive QA
-    # --------------------------------------------------------
-
     answer, qa_score = extract_answer(
         question,
         best_document
     )
-
-
-    # --------------------------------------------------------
-    # Format similarity scores
-    # --------------------------------------------------------
 
     similarity_output = ""
 
@@ -237,11 +240,6 @@ def answer_question(question):
             f"{name}: {score:.4f}\n"
         )
 
-
-    # --------------------------------------------------------
-    # Return results to Gradio
-    # --------------------------------------------------------
-
     return (
         best_document_name,
         f"{best_similarity:.4f}",
@@ -252,7 +250,7 @@ def answer_question(question):
 
 
 # ============================================================
-# 8. GRADIO FRONTEND
+# 7. GRADIO FRONTEND
 # ============================================================
 
 with gr.Blocks(
@@ -272,27 +270,16 @@ with gr.Blocks(
         """
     )
 
-
-    # --------------------------------------------------------
-    # Question input
-    # --------------------------------------------------------
-
     question = gr.Textbox(
         label="Enter your question",
         placeholder="Example: What is data preprocessing?",
         lines=2
     )
 
-
     search_button = gr.Button(
         "Search",
         variant="primary"
     )
-
-
-    # --------------------------------------------------------
-    # Search results
-    # --------------------------------------------------------
 
     with gr.Row():
 
@@ -304,39 +291,19 @@ with gr.Blocks(
             label="Cosine Similarity"
         )
 
-
-    # --------------------------------------------------------
-    # Extracted answer
-    # --------------------------------------------------------
-
     answer_output = gr.Textbox(
         label="Extracted Answer",
         lines=3
     )
 
-
-    # --------------------------------------------------------
-    # QA score
-    # --------------------------------------------------------
-
     qa_score_output = gr.Textbox(
         label="QA Score"
     )
-
-
-    # --------------------------------------------------------
-    # All similarity scores
-    # --------------------------------------------------------
 
     scores_output = gr.Textbox(
         label="Similarity Scores",
         lines=6
     )
-
-
-    # --------------------------------------------------------
-    # Button event
-    # --------------------------------------------------------
 
     search_button.click(
         fn=answer_question,
@@ -352,7 +319,7 @@ with gr.Blocks(
 
 
 # ============================================================
-# 9. START GRADIO SERVER
+# 8. START GRADIO SERVER
 # ============================================================
 
 if __name__ == "__main__":
@@ -363,6 +330,8 @@ if __name__ == "__main__":
             7860
         )
     )
+
+    print(f"Starting Gradio server on port {port}...")
 
     demo.launch(
         server_name="0.0.0.0",
