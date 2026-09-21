@@ -1,0 +1,5 @@
+Data Preprocessing
+
+Data preprocessing is an important step in Data Science. Real-world datasets may contain missing values, duplicate records, incorrect values, and inconsistent formats. Preprocessing improves the quality of data before it is used for analysis or machine learning.
+
+Common preprocessing techniques include handling missing values, removing duplicates, encoding categorical variables, scaling numerical values, and detecting outliers. Good preprocessing can make the dataset more suitable for analysis and can improve the performance of machine learning models.

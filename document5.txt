@@ -1,0 +1,5 @@
+Machine Learning in Data Science
+
+Machine learning is an important part of modern Data Science. It allows computers to learn patterns from data and use those patterns to make predictions or decisions. Machine learning algorithms can be trained using historical datasets.
+
+Machine learning applications include classification, regression, clustering, recommendation systems, and prediction. A Data Scientist usually prepares the data, selects suitable features and algorithms, trains a model, and evaluates its performance.

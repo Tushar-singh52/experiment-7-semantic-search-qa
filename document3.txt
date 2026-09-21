@@ -1,0 +1,5 @@
+Exploratory Data Analysis
+
+Exploratory Data Analysis, or EDA, is the process of examining a dataset to understand its main characteristics. It helps identify patterns, relationships, unusual values, and possible problems in the data. EDA is usually performed before building a predictive model.
+
+Data scientists use statistical summaries and visualizations during EDA. Histograms, scatter plots, bar charts, and correlation analysis can help reveal relationships between variables. EDA helps researchers understand the data and decide which methods should be applied next.

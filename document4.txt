@@ -1,0 +1,5 @@
+Data Visualization
+
+Data visualization represents information using graphical formats such as charts, graphs, and plots. It makes complex datasets easier to understand and helps people identify patterns and trends quickly. Visualization is an important part of communicating analytical results.
+
+Common visualization techniques include bar charts, line charts, scatter plots, histograms, and heatmaps. The choice of visualization depends on the type of data and the information that needs to be communicated.

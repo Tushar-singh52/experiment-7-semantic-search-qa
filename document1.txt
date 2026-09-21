@@ -1,0 +1,5 @@
+Introduction to Data Science
+
+Data Science is an interdisciplinary field that uses data, statistics, programming, and analytical methods to extract useful information from data. It helps organizations understand patterns, discover relationships, and make better decisions. Data scientists work with structured and unstructured data collected from different sources.
+
+A typical Data Science process includes collecting data, cleaning the data, exploring the data, analyzing patterns, building models, and communicating the results. Python and other programming tools are commonly used to process and analyze large datasets.
